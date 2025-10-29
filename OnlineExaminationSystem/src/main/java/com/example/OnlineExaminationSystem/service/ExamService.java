@@ -13,9 +13,11 @@ import com.example.OnlineExaminationSystem.dto.ExamSubmissionDTO;
 import com.example.OnlineExaminationSystem.entity.Exam;
 import com.example.OnlineExaminationSystem.entity.Question;
 import com.example.OnlineExaminationSystem.entity.Result;
+import com.example.OnlineExaminationSystem.entity.User;
 import com.example.OnlineExaminationSystem.repository.ExamRepository;
 import com.example.OnlineExaminationSystem.repository.QuestionRepository;
 import com.example.OnlineExaminationSystem.repository.ResultRepository;
+import com.example.OnlineExaminationSystem.repository.UserRepository;
 
 @Service
 public class ExamService {
@@ -29,6 +31,9 @@ public class ExamService {
 
     @Autowired
     private ResultRepository resultRepository;
+    
+    @Autowired
+    private UserRepository userRepository;
 
     public Exam createExam(Exam exam) {
         return examRepository.save(exam);
@@ -37,9 +42,29 @@ public class ExamService {
     public List<Exam> getAllExams() {
         return examRepository.findAll();
     }
+    
+    public Optional<Exam> getExamById(Long id) {
+        return examRepository.findById(id);
+    }
+    
+    public void deleteExam(Long id) {
+        examRepository.deleteById(id);
+    }
 
     @Transactional
     public Result gradeExam(ExamSubmissionDTO submission) {
+        // Get exam and user
+        Exam exam = examRepository.findById(submission.getExamId())
+            .orElseThrow(() -> new IllegalArgumentException("Exam not found"));
+        User user = userRepository.findById(submission.getUserId())
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            
+        // Check if user already submitted this exam
+        Optional<Result> existingResult = resultRepository.findByUserAndExam(user, exam);
+        if (existingResult.isPresent()) {
+            throw new IllegalStateException("User has already submitted this exam");
+        }
+
         // Get all questions for this exam
         List<Question> questions = questionRepository.findByExamId(submission.getExamId());
         if (questions.isEmpty()) {
@@ -64,13 +89,14 @@ public class ExamService {
 
         // Create and save result
         Result result = new Result();
-        result.setUserId(submission.getUserId());
-        result.setExamId(submission.getExamId());
+        result.setUser(user);
+        result.setExam(exam);
         result.setScore(correctAnswers);
         result.setPercentage(percentage);
+        result.setTotalQuestions(questions.size());
 
-        logger.info("Exam {} graded for user {}: score={}, percentage={}", 
-            submission.getExamId(), submission.getUserId(), correctAnswers, percentage);
+        logger.info("Exam {} graded for user {}: score={}/{}, percentage={}", 
+            exam.getTitle(), user.getUsername(), correctAnswers, questions.size(), percentage);
 
         return resultRepository.save(result);
     }
