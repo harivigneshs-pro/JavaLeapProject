@@ -9,9 +9,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.example.OnlineExaminationSystem.entity.User;
+import com.example.OnlineExaminationSystem.entity.Result;
+import com.example.OnlineExaminationSystem.entity.Exam;
 import com.example.OnlineExaminationSystem.service.AuthService;
 import com.example.OnlineExaminationSystem.service.ExamService;
 import com.example.OnlineExaminationSystem.service.ResultService;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/student")
@@ -40,7 +45,7 @@ public class StudentController {
             List<Exam> availableExams = allExams.stream()
                 .filter(exam -> userResults.stream()
                     .noneMatch(result -> result.getExam().getId().equals(exam.getId())))
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
             
             model.addAttribute("user", user);
             model.addAttribute("exams", availableExams);

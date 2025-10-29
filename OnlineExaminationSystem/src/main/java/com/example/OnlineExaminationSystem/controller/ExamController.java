@@ -16,6 +16,8 @@ import com.example.OnlineExaminationSystem.service.AuthService;
 import com.example.OnlineExaminationSystem.service.ExamService;
 import com.example.OnlineExaminationSystem.repository.QuestionRepository;
 import com.example.OnlineExaminationSystem.repository.ResultRepository;
+import com.example.OnlineExaminationSystem.repository.ExamAttemptRepository;
+import com.example.OnlineExaminationSystem.entity.ExamAttempt;
 
 import java.util.Optional;
 
@@ -35,6 +37,9 @@ public class ExamController {
     
     @Autowired
     private ResultRepository resultRepository;
+    
+    @Autowired
+    private ExamAttemptRepository examAttemptRepository;
 
     @PostMapping("/create")
     public String createExam(Exam exam, Authentication authentication, RedirectAttributes redirectAttributes) {
@@ -45,7 +50,7 @@ public class ExamController {
     }
 
     @GetMapping("/{id}/start")
-    public String startExam(@PathVariable Long id, Model model, Authentication authentication, RedirectAttributes redirectAttributes) {
+    public String showExamInstructions(@PathVariable Long id, Model model, Authentication authentication, RedirectAttributes redirectAttributes) {
         Exam exam = examService.getExamById(id).orElse(null);
         User user = authService.findByUsername(authentication.getName()).orElse(null);
         
@@ -66,6 +71,45 @@ public class ExamController {
         if (questions.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "This exam has no questions yet");
             return "redirect:/student/dashboard";
+        }
+        
+        model.addAttribute("exam", exam);
+        model.addAttribute("user", user);
+        
+        return "exam_instructions";
+    }
+    
+    @GetMapping("/{id}/interface")
+    public String startExamInterface(@PathVariable Long id, Model model, Authentication authentication, RedirectAttributes redirectAttributes) {
+        Exam exam = examService.getExamById(id).orElse(null);
+        User user = authService.findByUsername(authentication.getName()).orElse(null);
+        
+        if (exam == null || user == null) {
+            redirectAttributes.addFlashAttribute("error", "Exam not found or user not authenticated");
+            return "redirect:/student/dashboard";
+        }
+        
+        // Check if student has already taken this exam
+        Optional<Result> existingResult = resultRepository.findByUserAndExam(user, exam);
+        if (existingResult.isPresent()) {
+            redirectAttributes.addFlashAttribute("error", "You have already completed this exam. Score: " + 
+                existingResult.get().getScore() + "/" + existingResult.get().getTotalQuestions());
+            return "redirect:/student/dashboard";
+        }
+        
+        List<Question> questions = questionRepository.findByExamId(id);
+        if (questions.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "This exam has no questions yet");
+            return "redirect:/student/dashboard";
+        }
+        
+        // Create or get exam attempt
+        Optional<ExamAttempt> existingAttempt = examAttemptRepository.findByUserAndExam(user, exam);
+        if (existingAttempt.isEmpty()) {
+            ExamAttempt newAttempt = new ExamAttempt();
+            newAttempt.setUser(user);
+            newAttempt.setExam(exam);
+            examAttemptRepository.save(newAttempt);
         }
         
         model.addAttribute("exam", exam);

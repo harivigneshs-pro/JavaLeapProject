@@ -75,9 +75,14 @@
                     </div>
                 </div>
                 <div class="col-md-4 text-end">
-                    <button class="btn btn-warning me-2" onclick="submitExam()">
-                        <i class="fas fa-paper-plane me-2"></i>Submit Exam
-                    </button>
+                    <div class="d-flex align-items-center justify-content-end">
+                        <small class="text-light me-3">
+                            <i class="fas fa-shield-alt me-1"></i>Anti-Cheating Active
+                        </small>
+                        <button class="btn btn-warning" onclick="submitExam()">
+                            <i class="fas fa-paper-plane me-2"></i>Submit Exam
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -251,14 +256,25 @@
         let totalQuestions = /*[[${#lists.size(questions)}]]*/ 10;
         let timeRemaining = /*[[${exam.durationMinutes}]]*/ 60 * 60; // in seconds
         let answered = new Set();
+        let examId = /*[[${exam.id}]]*/ 1;
+        let isExamTerminated = false;
+        let violationCount = 0;
+        let hasGraceChance = true;
+
+        // Anti-cheating monitoring
+        let isTabActive = true;
+        let tabSwitchCount = 0;
+        let copyAttempts = 0;
 
         // Timer functionality
         function startTimer() {
             const timer = setInterval(() => {
-                if (timeRemaining <= 0) {
+                if (timeRemaining <= 0 || isExamTerminated) {
                     clearInterval(timer);
-                    alert('Time is up! Submitting exam automatically.');
-                    document.getElementById('examForm').submit();
+                    if (!isExamTerminated) {
+                        alert('Time is up! Submitting exam automatically.');
+                        document.getElementById('examForm').submit();
+                    }
                     return;
                 }
                 
@@ -275,6 +291,138 @@
             document.getElementById('timeRemaining').textContent = 
                 `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
+
+        // Anti-cheating functions
+        function reportViolation(violationType) {
+            if (isExamTerminated) return;
+
+            fetch('/api/exam-monitor/violation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `examId=${examId}&violationType=${violationType}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.action === 'warning') {
+                    showViolationWarning(data.message);
+                    hasGraceChance = false;
+                } else if (data.action === 'terminate') {
+                    terminateExam(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error reporting violation:', error);
+            });
+        }
+
+        function showViolationWarning(message) {
+            const warningDiv = document.createElement('div');
+            warningDiv.className = 'alert alert-warning alert-dismissible fade show position-fixed';
+            warningDiv.style.cssText = 'top: 100px; right: 20px; z-index: 9999; max-width: 400px;';
+            warningDiv.innerHTML = `
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>VIOLATION WARNING!</strong><br>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(warningDiv);
+            
+            // Auto remove after 10 seconds
+            setTimeout(() => {
+                if (warningDiv.parentNode) {
+                    warningDiv.remove();
+                }
+            }, 10000);
+        }
+
+        function terminateExam(reason) {
+            isExamTerminated = true;
+            
+            // Show termination modal
+            const modal = document.createElement('div');
+            modal.className = 'modal fade show';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-danger">
+                        <div class="modal-header bg-danger text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-ban me-2"></i>Exam Terminated
+                            </h5>
+                        </div>
+                        <div class="modal-body text-center">
+                            <i class="fas fa-times-circle fa-4x text-danger mb-3"></i>
+                            <h5>Your exam has been terminated!</h5>
+                            <p class="text-muted">${reason}</p>
+                            <p><strong>You will be redirected to the dashboard in 5 seconds...</strong></p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Redirect after 5 seconds
+            setTimeout(() => {
+                window.location.href = '/student/dashboard';
+            }, 5000);
+        }
+
+        // Tab visibility monitoring
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                isTabActive = false;
+                tabSwitchCount++;
+                reportViolation('Tab switched or window minimized');
+            } else {
+                isTabActive = true;
+            }
+        });
+
+        // Window focus monitoring
+        window.addEventListener('blur', function() {
+            if (!isExamTerminated) {
+                reportViolation('Window lost focus - possible tab switch');
+            }
+        });
+
+        // Prevent right-click context menu
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            reportViolation('Right-click attempted');
+        });
+
+        // Prevent copy, cut, paste
+        document.addEventListener('keydown', function(e) {
+            // Prevent Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A, F12, Ctrl+Shift+I, Ctrl+U
+            if ((e.ctrlKey && (e.key === 'c' || e.key === 'v' || e.key === 'x' || e.key === 'a')) ||
+                e.key === 'F12' ||
+                (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+                (e.ctrlKey && e.key === 'u')) {
+                e.preventDefault();
+                copyAttempts++;
+                reportViolation('Copy/Paste/Developer tools attempted');
+            }
+            
+            // Prevent Alt+Tab
+            if (e.altKey && e.key === 'Tab') {
+                e.preventDefault();
+                reportViolation('Alt+Tab attempted');
+            }
+        });
+
+        // Prevent text selection
+        document.addEventListener('selectstart', function(e) {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+            }
+        });
+
+        // Prevent drag and drop
+        document.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+        });
 
         // Question navigation
         function showQuestion(index) {
@@ -301,6 +449,8 @@
 
         // Option selection
         function selectOption(questionIndex, option) {
+            if (isExamTerminated) return;
+            
             // Remove selected class from all options for this question
             document.querySelectorAll(`#question-${questionIndex} .option-card`).forEach(card => {
                 card.classList.remove('selected');
@@ -326,11 +476,13 @@
 
         // Exam submission
         function submitExam() {
+            if (isExamTerminated) return;
             const modal = new bootstrap.Modal(document.getElementById('submitModal'));
             modal.show();
         }
 
         function confirmSubmit() {
+            if (isExamTerminated) return;
             document.getElementById('examForm').submit();
         }
 
@@ -339,11 +491,47 @@
             startTimer();
             updateTimerDisplay();
             
+            // Enter fullscreen mode
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Fullscreen not supported');
+                });
+            }
+            
+            // Monitor fullscreen exit
+            document.addEventListener('fullscreenchange', function() {
+                if (!document.fullscreenElement && !isExamTerminated) {
+                    reportViolation('Exited fullscreen mode');
+                }
+            });
+            
             // Prevent page refresh/back button
             window.addEventListener('beforeunload', function(e) {
-                e.preventDefault();
-                e.returnValue = '';
+                if (!isExamTerminated) {
+                    e.preventDefault();
+                    e.returnValue = 'Are you sure you want to leave? Your exam progress will be lost.';
+                }
             });
+            
+            // Show initial warning
+            setTimeout(() => {
+                const warningDiv = document.createElement('div');
+                warningDiv.className = 'alert alert-info alert-dismissible fade show position-fixed';
+                warningDiv.style.cssText = 'top: 100px; right: 20px; z-index: 9999; max-width: 400px;';
+                warningDiv.innerHTML = `
+                    <i class="fas fa-shield-alt me-2"></i>
+                    <strong>Anti-Cheating Active!</strong><br>
+                    Tab switching, copy-paste, and other violations are monitored. You have ONE grace chance.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(warningDiv);
+                
+                setTimeout(() => {
+                    if (warningDiv.parentNode) {
+                        warningDiv.remove();
+                    }
+                }, 8000);
+            }, 2000);
         });
     </script>
 </body>
