@@ -181,57 +181,76 @@ function startExam() {
    🧠 STUDENT: LOAD QUESTIONS BY EXAM ID
 ====================================================== */
 
+// Global variable to store exam questions and timer
+let examQuestions = [];
+let examTimer = null;
+
 async function loadQuestions() {
-  const examId = localStorage.getItem("currentExamId");
-
-  if (!examId) {
-    alert("No exam selected.");
-    return;
-  }
-
-  try {
-    console.log("Fetching questions for exam:", examId);
-    const res = await fetch(`${API_BASE}/questions/exam/${examId}`);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch questions: ${res.status}`);
-    }
-    const questions = await res.json();
-    console.log(`Received ${questions.length} questions:`, questions);
-
-    const container = document.getElementById("questionSection");
-    if (!questions.length) {
-      container.innerHTML = "<p>No questions found for this exam.</p>";
-      return;
+    const examId = localStorage.getItem("currentExamId");
+    if (!examId) {
+        alert("No exam selected.");
+        return;
     }
 
-    container.innerHTML = questions
-      .map(
-        (q, i) => {
-          if (!q.id) {
-            console.warn('Question missing ID:', q);
-          }
-          const qId = q.id || i;
-          const name = `q${i}`; // ensure radio groups are unique per question
-          return `
-      <div class="question" data-id="${qId}">
-        <h4>${i + 1}. ${q.questionText}</h4>
-        <div class="options">
-          <label><input type="radio" name="${name}" value="A"> ${q.optionA}</label><br>
-          <label><input type="radio" name="${name}" value="B"> ${q.optionB}</label><br>
-          <label><input type="radio" name="${name}" value="C"> ${q.optionC}</label><br>
-          <label><input type="radio" name="${name}" value="D"> ${q.optionD}</label>
-        </div>
-      </div>
-      <hr>`;
+    try {
+        console.log("Fetching questions for exam:", examId);
+        const response = await fetch(`${API_BASE}/questions/exam/${examId}`);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch questions: ${response.status}`);
         }
-      )
-      .join("");
-  } catch (err) {
-    console.error("Error loading questions:", err);
-    alert("Failed to load questions. Please try again.");
-  }
 
-  startTimer(questions.length * 60);
+        const data = await response.json();
+        console.log("Raw response data:", data);
+
+        if (!Array.isArray(data)) {
+            console.error("Expected array of questions, got:", typeof data);
+            alert("Error: Invalid question data received");
+            return;
+        }
+
+        examQuestions = data; // Store questions globally
+        console.log(`Received ${examQuestions.length} questions:`, examQuestions);
+
+        const container = document.getElementById("questionSection");
+        if (!examQuestions.length) {
+            container.innerHTML = "<p>No questions found for this exam.</p>";
+            return;
+        }
+
+        // Clear any existing timer
+        if (examTimer) {
+            clearInterval(examTimer);
+        }
+
+        // Render questions
+        container.innerHTML = examQuestions
+            .map((q, i) => {
+                if (!q.id) {
+                    console.warn('Question missing ID:', q);
+                }
+                const qId = q.id || i;
+                const name = `question_${i}`; // Ensure unique names
+                return `
+                    <div class="question" data-id="${qId}">
+                        <h4>${i + 1}. ${q.questionText || 'Missing question text'}</h4>
+                        <div class="options">
+                            <label><input type="radio" name="${name}" value="A"> ${q.optionA || 'Option A'}</label><br>
+                            <label><input type="radio" name="${name}" value="B"> ${q.optionB || 'Option B'}</label><br>
+                            <label><input type="radio" name="${name}" value="C"> ${q.optionC || 'Option C'}</label><br>
+                            <label><input type="radio" name="${name}" value="D"> ${q.optionD || 'Option D'}</label>
+                        </div>
+                    </div>
+                    <hr>`;
+            })
+            .join("");
+
+        // Start timer with 30 minutes per question
+        startTimer(examQuestions.length * 30 * 60); // 30 minutes per question in seconds
+    } catch (err) {
+        console.error("Error loading questions:", err);
+        alert("Failed to load questions. Please try again.");
+    }
 }
 
 /* ======================================================
@@ -239,20 +258,39 @@ async function loadQuestions() {
 ====================================================== */
 
 function startTimer(durationSeconds) {
-  const timerElement = document.getElementById("timeLeft");
-  let timeLeft = durationSeconds;
-
-  const timer = setInterval(() => {
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
-    timerElement.textContent = `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
-
-    if (--timeLeft < 0) {
-      clearInterval(timer);
-      alert("⏰ Time’s up! Submitting exam automatically...");
-      submitExam();
+    const timerElement = document.getElementById("timeLeft");
+    if (!timerElement) {
+        console.error("Timer element not found");
+        return;
     }
-  }, 1000);
+
+    // Clear any existing timer
+    if (examTimer) {
+        clearInterval(examTimer);
+    }
+
+    let timeLeft = durationSeconds;
+
+    // Format and display initial time
+    const formatTime = (seconds) => {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes}:${remainingSeconds < 10 ? "0" : ""}${remainingSeconds}`;
+    };
+
+    timerElement.textContent = formatTime(timeLeft);
+
+    examTimer = setInterval(() => {
+        timeLeft--;
+        timerElement.textContent = formatTime(timeLeft);
+
+        if (timeLeft <= 0) {
+            clearInterval(examTimer);
+            examTimer = null;
+            alert("⏰ Time's up! Submitting exam automatically...");
+            submitExam();
+        }
+    }, 1000);
 }
 
 /* ======================================================

@@ -1,5 +1,6 @@
 package com.example.OnlineExaminationSystem.service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -7,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.OnlineExaminationSystem.entity.Exam;
 import com.example.OnlineExaminationSystem.entity.Question;
@@ -23,10 +25,25 @@ public class QuestionService {
     @Autowired
     private ExamRepository examRepository;
 
+    @Transactional(readOnly = true)
     public List<Question> getQuestionsByExamId(Long examId) {
         logger.info("Fetching questions for exam ID: {}", examId);
+        
+        Optional<Exam> exam = examRepository.findById(examId);
+        if (exam.isEmpty()) {
+            logger.warn("Exam not found with ID: {}", examId);
+            return Collections.emptyList();
+        }
+
         List<Question> questions = questionRepository.findByExamId(examId);
         logger.info("Found {} questions for exam ID: {}", questions.size(), examId);
+        
+        if (questions.isEmpty()) {
+            logger.warn("No questions found for exam ID: {}", examId);
+        } else {
+            questions.forEach(q -> logger.debug("Question found: id={}, text={}", q.getId(), q.getQuestionText()));
+        }
+        
         return questions;
     }    public Optional<Question> addQuestion(Question question) {
         // Validate that the exam exists and attach the managed entity to the question
