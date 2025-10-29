@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Online Exam</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body onload="loadQuestions()">
+
+<div class="navbar">
+  <div>Online Exam</div>
+  <a href="login.html">Logout</a>
+</div>
+
+<div class="container" id="examContainer">
+  <h2>Exam Page</h2>
+  <p id="timer">Time Left: <span id="timeLeft"></span></p>
+  <div id="questionSection"></div>
+  <button onclick="submitExam()">Submit Exam</button>
+</div>
+
+<script src="js/script.js"></script>
+</body>
+</html>
