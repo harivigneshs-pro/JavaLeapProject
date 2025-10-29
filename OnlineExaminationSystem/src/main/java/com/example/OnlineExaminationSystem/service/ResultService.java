@@ -18,9 +18,7 @@ public class ResultService {
     }
 
     public List<Result> getResultsByUser(Long userId) {
-        return resultRepository.findAll().stream()
-                .filter(r -> r.getUserId().equals(userId))
-                .toList();
+        return resultRepository.findByUserId(userId);
     }
 }
 

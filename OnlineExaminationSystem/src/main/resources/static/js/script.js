@@ -189,28 +189,47 @@ async function loadQuestions() {
     return;
   }
 
-  const res = await fetch(`${API_BASE}/questions/exam/${examId}`);
-  const questions = await res.json();
-  const container = document.getElementById("questionSection");
+  try {
+    console.log("Fetching questions for exam:", examId);
+    const res = await fetch(`${API_BASE}/questions/exam/${examId}`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch questions: ${res.status}`);
+    }
+    const questions = await res.json();
+    console.log(`Received ${questions.length} questions:`, questions);
 
-  if (!questions.length) {
-    container.innerHTML = "<p>No questions found for this exam.</p>";
-    return;
+    const container = document.getElementById("questionSection");
+    if (!questions.length) {
+      container.innerHTML = "<p>No questions found for this exam.</p>";
+      return;
+    }
+
+    container.innerHTML = questions
+      .map(
+        (q, i) => {
+          if (!q.id) {
+            console.warn('Question missing ID:', q);
+          }
+          const qId = q.id || i;
+          const name = `q${i}`; // ensure radio groups are unique per question
+          return `
+      <div class="question" data-id="${qId}">
+        <h4>${i + 1}. ${q.questionText}</h4>
+        <div class="options">
+          <label><input type="radio" name="${name}" value="A"> ${q.optionA}</label><br>
+          <label><input type="radio" name="${name}" value="B"> ${q.optionB}</label><br>
+          <label><input type="radio" name="${name}" value="C"> ${q.optionC}</label><br>
+          <label><input type="radio" name="${name}" value="D"> ${q.optionD}</label>
+        </div>
+      </div>
+      <hr>`;
+        }
+      )
+      .join("");
+  } catch (err) {
+    console.error("Error loading questions:", err);
+    alert("Failed to load questions. Please try again.");
   }
-
-  container.innerHTML = questions
-    .map(
-      (q, i) => `
-    <div class="question" data-id="${q.id}">
-      <h4>${i + 1}. ${q.questionText}</h4>
-      <label><input type="radio" name="q${q.id}" value="A"> ${q.optionA}</label><br>
-      <label><input type="radio" name="q${q.id}" value="B"> ${q.optionB}</label><br>
-      <label><input type="radio" name="q${q.id}" value="C"> ${q.optionC}</label><br>
-      <label><input type="radio" name="q${q.id}" value="D"> ${q.optionD}</label>
-    </div>
-    <hr>`
-    )
-    .join("");
 
   startTimer(questions.length * 60);
 }
@@ -251,30 +270,56 @@ async function submitExam() {
 
   const questionDivs = document.querySelectorAll(".question");
   const answers = [];
+  let totalQuestions = questionDivs.length;
+  let answeredQuestions = 0;
 
   questionDivs.forEach((q) => {
     const qId = q.dataset.id;
     const selected = q.querySelector("input[type='radio']:checked");
     if (selected) {
+      answeredQuestions++;
       answers.push({ questionId: parseInt(qId), selectedAnswer: selected.value });
     }
   });
 
-  const res = await fetch(`${API_BASE}/exams/submit`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      userId: user.id,
-      examId: parseInt(examId),
-      answers,
-    }),
-  });
+  console.log(`Answered ${answeredQuestions} out of ${totalQuestions} questions`);
 
-  if (res.ok) {
-    const result = await res.json();
-    alert(`✅ Exam submitted successfully! 🎯 Score: ${result.score}`);
-  } else {
-    alert("Exam submission failed.");
+  if (answers.length === 0) {
+    alert("Please answer at least one question before submitting.");
+    return;
+  }
+
+  if (answeredQuestions < totalQuestions) {
+    const proceed = confirm(`You've only answered ${answeredQuestions} out of ${totalQuestions} questions. Are you sure you want to submit?`);
+    if (!proceed) return;
+  }
+
+  try {
+    console.log("Submitting answers:", answers);
+    const res = await fetch(`${API_BASE}/exams/submit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: user.id,
+        examId: parseInt(examId),
+        answers,
+      }),
+    });
+
+    if (res.ok) {
+      const result = await res.json();
+      const percentage = result.percentage.toFixed(1);
+      alert(`✅ Exam submitted successfully!\n🎯 Score: ${result.score}\n📊 Percentage: ${percentage}%`);
+      // Redirect to results page after submission
+      window.location = "results.html";
+    } else {
+      const error = await res.text();
+      console.error("Submission error response:", error);
+      alert(`Submission failed: ${error}`);
+    }
+  } catch (err) {
+    console.error("Submit error:", err);
+    alert("Error submitting exam. Please check your connection and try again.");
   }
 }
 

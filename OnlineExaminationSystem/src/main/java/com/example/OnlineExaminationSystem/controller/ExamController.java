@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,7 +12,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.OnlineExaminationSystem.dto.ExamDTO;
+import com.example.OnlineExaminationSystem.dto.ExamSubmissionDTO;
 import com.example.OnlineExaminationSystem.entity.Exam;
+import com.example.OnlineExaminationSystem.entity.Result;
 import com.example.OnlineExaminationSystem.service.ExamService;
 @RestController
 @RequestMapping("/api/exams")
@@ -24,13 +27,17 @@ public class ExamController {
         return examService.createExam(exam);
     }
 
-   @GetMapping("/all")
-public List<ExamDTO> getAllExams() {
-    return examService.getAllExams()
-        .stream()
-        .map(exam -> new ExamDTO(exam.getId(), exam.getTitle()))
-        .collect(Collectors.toList());
-}
+    @GetMapping("/all")
+    public List<ExamDTO> getAllExams() {
+        return examService.getAllExams()
+            .stream()
+            .map(exam -> new ExamDTO(exam.getId(), exam.getTitle()))
+            .collect(Collectors.toList());
+    }
 
+    @PostMapping("/submit")
+    public ResponseEntity<Result> submitExam(@RequestBody ExamSubmissionDTO submission) {
+        Result result = examService.gradeExam(submission);
+        return ResponseEntity.ok(result);
+    }
 }
-

@@ -6,4 +6,7 @@ import org.springframework.stereotype.Repository;
 import com.example.OnlineExaminationSystem.entity.Result;
 
 @Repository
-public interface ResultRepository extends JpaRepository<Result, Long> { }
+public interface ResultRepository extends JpaRepository<Result, Long> {
+	// Spring Data JPA derived query to fetch results by userId
+	java.util.List<Result> findByUserId(Long userId);
+}

@@ -34,7 +34,8 @@ public List<Question> getQuestionsByExam(@PathVariable Long examId) {
 
     @PostMapping("/add")
     public Question add(@RequestBody Question question) {
-        return questionService.addQuestion(question);
+        var savedOpt = questionService.addQuestion(question);
+        return savedOpt.orElseThrow(() -> new IllegalArgumentException("Failed to add question: exam not found or invalid payload"));
     }
 }
 
