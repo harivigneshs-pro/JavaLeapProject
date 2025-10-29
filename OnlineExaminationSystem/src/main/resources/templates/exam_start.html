@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Start Exam</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body onload="loadQuestions()">
+
+<div class="navbar">
+  <div>Online Exam</div>
+  <a th:href="@{/login}">Logout</a>
+</div>
+
+<div class="container">
+  <h2>Exam Questions</h2>
+  <p id="timer">Time Left: <span id="timeLeft"></span></p>
+  <div id="questionSection"></div>
+  <button onclick="submitExam()">Submit Exam</button>
+</div>
+
+<script th:src="@{/js/script.js}"></script>
+</body>
+</html>

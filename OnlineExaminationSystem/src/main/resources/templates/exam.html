@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Online Exam</title>
+    <!-- Thymeleaf resolves static resources in /static automatically -->
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body onload="loadExams()">
+
+<div class="navbar">
+    <div>Online Exam</div>
+    <!-- Use Thymeleaf for internal links -->
+    <a th:href="@{/login}">Logout</a>
+</div>
+
+<div class="container" id="examContainer">
+    <h2>Exam Page</h2>
+
+    <!-- Exam selection -->
+    <label for="examSelect">Select Exam:</label>
+    <select id="examSelect"></select>
+    <button onclick="startExam()">Start Exam</button>
+
+    <!-- Timer -->
+    <p id="timer">Time Left: <span id="timeLeft"></span></p>
+
+    <!-- Questions -->
+    <div id="questionSection"></div>
+
+    <!-- Submit -->
+    <button onclick="submitExam()">Submit Exam</button>
+</div>
+
+<!-- JS script -->
+<script th:src="@{/js/script.js}"></script>
+</body>
+</html>
