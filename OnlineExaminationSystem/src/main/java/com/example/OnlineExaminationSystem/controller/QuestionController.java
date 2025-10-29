@@ -27,6 +27,7 @@ public class QuestionController {
     }*/
     @GetMapping("/exam/{examId}")
 public List<Question> getQuestionsByExam(@PathVariable Long examId) {
+     System.out.println("Fetching questions for examId: " + examId);
     return questionService.getQuestionsByExamId(examId);
 }
 
