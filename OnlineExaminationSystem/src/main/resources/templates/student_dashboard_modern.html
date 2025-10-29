@@ -51,7 +51,7 @@
                     <a class="nav-link text-white" href="#results">
                         <i class="fas fa-chart-bar me-2"></i>My Results
                     </a>
-                    <a class="nav-link text-white" th:href="@{/profile}">
+                    <a class="nav-link text-white" href="#profile">
                         <i class="fas fa-user me-2"></i>Profile
                     </a>
                     <a class="nav-link text-white" th:href="@{/logout}">
@@ -140,13 +140,8 @@
                             <div class="card-body">
                                 <div th:if="${#lists.isEmpty(exams)}" class="text-center py-4">
                                     <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
-                                    <h6 class="text-muted">No new exams available</h6>
-                                    <p class="text-muted">You have completed all available exams or check back later for new examinations</p>
-                                    <div th:if="${!#lists.isEmpty(results)}">
-                                        <a th:href="@{/results}" class="btn btn-outline-success">
-                                            <i class="fas fa-trophy me-2"></i>View Completed Exams
-                                        </a>
-                                    </div>
+                                    <h6 class="text-muted">No exams available</h6>
+                                    <p class="text-muted">Check back later for new examinations</p>
                                 </div>
 
                                 <div th:each="exam : ${exams}" class="card exam-card mb-3">
@@ -216,7 +211,7 @@
                                 </div>
 
                                 <div th:if="${!#lists.isEmpty(results)}" class="text-center mt-3">
-                                    <a th:href="@{/results}" class="btn btn-outline-primary btn-sm">View All Results</a>
+                                    <a href="#" class="btn btn-outline-primary btn-sm">View All Results</a>
                                 </div>
                             </div>
                         </div>

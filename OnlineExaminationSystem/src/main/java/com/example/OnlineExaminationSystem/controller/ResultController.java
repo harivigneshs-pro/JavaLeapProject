@@ -38,7 +38,7 @@ public class ResultController {
             List<Result> results = resultService.getResultsByUser(user);
             model.addAttribute("results", results);
             model.addAttribute("user", user);
-            return "results";
+            return "completed_exams";
         } else {
             // For admin/faculty - show all results
             List<Result> results = resultService.getAllResults();

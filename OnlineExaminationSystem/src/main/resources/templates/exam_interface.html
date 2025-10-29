@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${exam.title} + ' - ExamPortal'">Exam - ExamPortal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .exam-header {
+            background: linear-gradient(135deg, #007bff 0%, #6610f2 100%);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .timer {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .question-card {
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 15px;
+        }
+        .question-nav {
+            position: sticky;
+            top: 80px;
+        }
+        .question-btn {
+            width: 40px;
+            height: 40px;
+            margin: 2px;
+            border-radius: 50%;
+        }
+        .question-btn.answered {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+        .question-btn.current {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .option-card {
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid #e9ecef;
+        }
+        .option-card:hover {
+            border-color: #007bff;
+            background-color: #f8f9ff;
+        }
+        .option-card.selected {
+            border-color: #007bff;
+            background-color: #e7f3ff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Exam Header -->
+    <div class="exam-header py-3">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <h5 class="mb-0" th:text="${exam.title}">Exam Title</h5>
+                    <small>Student: <span th:text="${user.username}">Student Name</span></small>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="timer" id="timer">
+                        <i class="fas fa-clock me-2"></i>
+                        <span id="timeRemaining" th:data-duration="${exam.durationMinutes}">00:00:00</span>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-warning me-2" onclick="submitExam()">
+                        <i class="fas fa-paper-plane me-2"></i>Submit Exam
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Question Navigation -->
+            <div class="col-md-2">
+                <div class="question-nav">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-list me-2"></i>Questions
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex flex-wrap">
+                                <button th:each="question, iterStat : ${questions}" 
+                                        th:id="'nav-btn-' + ${iterStat.index}"
+                                        th:onclick="'showQuestion(' + ${iterStat.index} + ')'"
+                                        th:class="'btn btn-outline-secondary question-btn' + (${iterStat.index == 0} ? ' current' : '')"
+                                        th:text="${iterStat.count}">1</button>
+                            </div>
+                            <div class="mt-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="question-btn btn btn-success me-2" style="width: 20px; height: 20px;"></div>
+                                    <small>Answered</small>
+                                </div>
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="question-btn btn btn-primary me-2" style="width: 20px; height: 20px;"></div>
+                                    <small>Current</small>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <div class="question-btn btn btn-outline-secondary me-2" style="width: 20px; height: 20px;"></div>
+                                    <small>Not Answered</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question Content -->
+            <div class="col-md-10">
+                <form id="examForm" th:action="@{/exams/submit}" method="post">
+                    <input type="hidden" name="userId" th:value="${user.id}">
+                    <input type="hidden" name="examId" th:value="${exam.id}">
+
+                    <div th:each="question, iterStat : ${questions}" 
+                         th:id="'question-' + ${iterStat.index}"
+                         th:class="'question-container' + (${iterStat.index != 0} ? ' d-none' : '')">
+                        
+                        <div class="card question-card mb-4">
+                            <div class="card-header bg-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">
+                                        Question <span th:text="${iterStat.count}">1</span> of <span th:text="${#lists.size(questions)}">10</span>
+                                    </h6>
+                                    <span class="badge bg-primary" th:if="${question.subject}" th:text="${question.subject}">Subject</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <h5 class="mb-4" th:text="${question.questionText}">Question text goes here</h5>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="option-card card p-3" th:onclick="'selectOption(' + ${iterStat.index} + ', \'A\')'">
+                                            <div class="d-flex align-items-center">
+                                                <input type="radio" th:name="'answers[' + ${iterStat.index} + '].selectedAnswer'" 
+                                                       th:id="'q' + ${iterStat.index} + 'a'" value="A" class="form-check-input me-3">
+                                                <label th:for="'q' + ${iterStat.index} + 'a'" class="form-check-label flex-grow-1">
+                                                    <strong>A.</strong> <span th:text="${question.optionA}">Option A</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="option-card card p-3" th:onclick="'selectOption(' + ${iterStat.index} + ', \'B\')'">
+                                            <div class="d-flex align-items-center">
+                                                <input type="radio" th:name="'answers[' + ${iterStat.index} + '].selectedAnswer'" 
+                                                       th:id="'q' + ${iterStat.index} + 'b'" value="B" class="form-check-input me-3">
+                                                <label th:for="'q' + ${iterStat.index} + 'b'" class="form-check-label flex-grow-1">
+                                                    <strong>B.</strong> <span th:text="${question.optionB}">Option B</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="option-card card p-3" th:onclick="'selectOption(' + ${iterStat.index} + ', \'C\')'">
+                                            <div class="d-flex align-items-center">
+                                                <input type="radio" th:name="'answers[' + ${iterStat.index} + '].selectedAnswer'" 
+                                                       th:id="'q' + ${iterStat.index} + 'c'" value="C" class="form-check-input me-3">
+                                                <label th:for="'q' + ${iterStat.index} + 'c'" class="form-check-label flex-grow-1">
+                                                    <strong>C.</strong> <span th:text="${question.optionC}">Option C</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="option-card card p-3" th:onclick="'selectOption(' + ${iterStat.index} + ', \'D\')'">
+                                            <div class="d-flex align-items-center">
+                                                <input type="radio" th:name="'answers[' + ${iterStat.index} + '].selectedAnswer'" 
+                                                       th:id="'q' + ${iterStat.index} + 'd'" value="D" class="form-check-input me-3">
+                                                <label th:for="'q' + ${iterStat.index} + 'd'" class="form-check-label flex-grow-1">
+                                                    <strong>D.</strong> <span th:text="${question.optionD}">Option D</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <input type="hidden" th:name="'answers[' + ${iterStat.index} + '].questionId'" th:value="${question.id}">
+                            </div>
+                        </div>
+
+                        <!-- Navigation Buttons -->
+                        <div class="d-flex justify-content-between mb-4">
+                            <button type="button" class="btn btn-outline-secondary" 
+                                    th:onclick="'previousQuestion(' + ${iterStat.index} + ')'"
+                                    th:disabled="${iterStat.index == 0}">
+                                <i class="fas fa-chevron-left me-2"></i>Previous
+                            </button>
+                            <button type="button" class="btn btn-primary" 
+                                    th:onclick="'nextQuestion(' + ${iterStat.index} + ')'"
+                                    th:if="${iterStat.index < #lists.size(questions) - 1}">
+                                Next<i class="fas fa-chevron-right ms-2"></i>
+                            </button>
+                            <button type="button" class="btn btn-success" 
+                                    th:onclick="submitExam()"
+                                    th:if="${iterStat.index == #lists.size(questions) - 1}">
+                                <i class="fas fa-paper-plane me-2"></i>Submit Exam
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Confirmation Modal -->
+    <div class="modal fade" id="submitModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Submit Exam</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to submit your exam? You cannot change your answers after submission.</p>
+                    <div class="alert alert-info">
+                        <strong>Summary:</strong><br>
+                        Total Questions: <span th:text="${#lists.size(questions)}">10</span><br>
+                        Answered: <span id="answeredCount">0</span><br>
+                        Remaining: <span id="remainingCount" th:text="${#lists.size(questions)}">10</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="confirmSubmit()">
+                        <i class="fas fa-paper-plane me-2"></i>Submit Exam
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentQuestion = 0;
+        let totalQuestions = /*[[${#lists.size(questions)}]]*/ 10;
+        let timeRemaining = /*[[${exam.durationMinutes}]]*/ 60 * 60; // in seconds
+        let answered = new Set();
+
+        // Timer functionality
+        function startTimer() {
+            const timer = setInterval(() => {
+                if (timeRemaining <= 0) {
+                    clearInterval(timer);
+                    alert('Time is up! Submitting exam automatically.');
+                    document.getElementById('examForm').submit();
+                    return;
+                }
+                
+                timeRemaining--;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const hours = Math.floor(timeRemaining / 3600);
+            const minutes = Math.floor((timeRemaining % 3600) / 60);
+            const seconds = timeRemaining % 60;
+            
+            document.getElementById('timeRemaining').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Question navigation
+        function showQuestion(index) {
+            document.querySelectorAll('.question-container').forEach(q => q.classList.add('d-none'));
+            document.getElementById(`question-${index}`).classList.remove('d-none');
+            
+            document.querySelectorAll('.question-btn').forEach(btn => btn.classList.remove('current'));
+            document.getElementById(`nav-btn-${index}`).classList.add('current');
+            
+            currentQuestion = index;
+        }
+
+        function nextQuestion(index) {
+            if (index < totalQuestions - 1) {
+                showQuestion(index + 1);
+            }
+        }
+
+        function previousQuestion(index) {
+            if (index > 0) {
+                showQuestion(index - 1);
+            }
+        }
+
+        // Option selection
+        function selectOption(questionIndex, option) {
+            // Remove selected class from all options for this question
+            document.querySelectorAll(`#question-${questionIndex} .option-card`).forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked option
+            event.currentTarget.classList.add('selected');
+            
+            // Check the radio button
+            document.getElementById(`q${questionIndex}${option.toLowerCase()}`).checked = true;
+            
+            // Mark as answered
+            answered.add(questionIndex);
+            document.getElementById(`nav-btn-${questionIndex}`).classList.add('answered');
+            
+            updateAnswerCount();
+        }
+
+        function updateAnswerCount() {
+            document.getElementById('answeredCount').textContent = answered.size;
+            document.getElementById('remainingCount').textContent = totalQuestions - answered.size;
+        }
+
+        // Exam submission
+        function submitExam() {
+            const modal = new bootstrap.Modal(document.getElementById('submitModal'));
+            modal.show();
+        }
+
+        function confirmSubmit() {
+            document.getElementById('examForm').submit();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            startTimer();
+            updateTimerDisplay();
+            
+            // Prevent page refresh/back button
+            window.addEventListener('beforeunload', function(e) {
+                e.preventDefault();
+                e.returnValue = '';
+            });
+        });
+    </script>
+</body>
+</html>

@@ -33,9 +33,19 @@ public class StudentController {
         User user = authService.findByUsername(username).orElse(null);
         
         if (user != null) {
+            List<Result> userResults = resultService.getResultsByUser(user);
+            List<Exam> allExams = examService.getAllExams();
+            
+            // Filter out exams already taken by the student
+            List<Exam> availableExams = allExams.stream()
+                .filter(exam -> userResults.stream()
+                    .noneMatch(result -> result.getExam().getId().equals(exam.getId())))
+                .collect(java.util.stream.Collectors.toList());
+            
             model.addAttribute("user", user);
-            model.addAttribute("exams", examService.getAllExams());
-            model.addAttribute("results", resultService.getResultsByUser(user));
+            model.addAttribute("exams", availableExams);
+            model.addAttribute("results", userResults);
+            model.addAttribute("completedExams", userResults.size());
         }
         
         return "student_dashboard";
