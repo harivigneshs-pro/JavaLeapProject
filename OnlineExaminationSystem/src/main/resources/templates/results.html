@@ -1,28 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8">
-  <title>Results</title>
-  <link rel="stylesheet" href="css/style.css">
+    <meta charset="UTF-8">
+    <title>Results</title>
+    <!-- CSS from /static/css -->
+    <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
 
 <div class="navbar">
-  <div>Results Dashboard</div>
-  <a href="login.html">Logout</a>
+    <div>Results Dashboard</div>
+    <a th:href="@{/login.html}">Logout</a>
 </div>
 
 <div class="container">
-  <h2>Your Results</h2>
-  <div id="resultList"></div>
+    <h2>Your Results</h2>
+    <div id="resultList"></div>
 
-  <hr>
-  <h3>Submit Feedback</h3>
-  <textarea id="feedbackText" rows="4" placeholder="Your comments..."></textarea>
-  <input type="number" id="rating" min="1" max="5" placeholder="Rating (1–5)">
-  <button onclick="submitFeedback()">Submit</button>
+    <hr>
+    <h3>Submit Feedback</h3>
+    <textarea id="feedbackText" rows="4" placeholder="Your comments..."></textarea>
+    <input type="number" id="rating" min="1" max="5" placeholder="Rating (1–5)">
+    <button onclick="submitFeedback()">Submit</button>
 </div>
 
-<script src="js/script.js"></script>
+<!-- JS from /static/js -->
+<script th:src="@{/js/script.js}"></script>
 </body>
 </html>

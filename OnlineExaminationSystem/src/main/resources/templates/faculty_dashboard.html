@@ -1,35 +1,38 @@
-Faculty dashboard — for creating exams and adding questions.
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8">
-  <title>Faculty Dashboard</title>
-  <link rel="stylesheet" href="css/style.css">
+    <meta charset="UTF-8">
+    <title>Faculty Dashboard</title>
+    <!-- CSS from /static/css -->
+    <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
 
 <div class="navbar">
-  <div>Faculty Dashboard</div>
-  <a href="login.html">Logout</a>
+    <div>Faculty Dashboard</div>
+    <!-- Logout link -->
+    <a th:href="@{/login}">Logout</a>
 </div>
 
 <div class="container">
-  <h2>Create Exam</h2>
-  <input type="text" id="examTitle" placeholder="Exam Title">
-  <input type="number" id="examDuration" placeholder="Duration (minutes)">
-  <button onclick="createExam()">Create Exam</button>
+    <h2>Create Exam</h2>
+    <input type="text" id="examTitle" placeholder="Exam Title">
+    <input type="number" id="examDuration" placeholder="Duration (minutes)">
+    <button onclick="createExam()">Create Exam</button>
 
-  <hr>
-  <h2>Add Question</h2>
-  <input type="text" id="questionText" placeholder="Question Text">
-  <input type="text" id="optionA" placeholder="Option A">
-  <input type="text" id="optionB" placeholder="Option B">
-  <input type="text" id="optionC" placeholder="Option C">
-  <input type="text" id="optionD" placeholder="Option D">
-  <input type="text" id="correctAnswer" placeholder="Correct Answer (A/B/C/D)">
-  <button onclick="addQuestion()">Add Question</button>
+    <hr>
+
+    <h2>Add Question</h2>
+    <input type="text" id="questionText" placeholder="Question Text">
+    <input type="text" id="optionA" placeholder="Option A">
+    <input type="text" id="optionB" placeholder="Option B">
+    <input type="text" id="optionC" placeholder="Option C">
+    <input type="text" id="optionD" placeholder="Option D">
+    <input type="text" id="correctAnswer" placeholder="Correct Answer (A/B/C/D)">
+    <button onclick="addQuestion()">Add Question</button>
 </div>
 
-<script src="js/script.js"></script>
+<!-- JS from /static/js -->
+<script th:src="@{/js/script.js}"></script>
 </body>
 </html>
