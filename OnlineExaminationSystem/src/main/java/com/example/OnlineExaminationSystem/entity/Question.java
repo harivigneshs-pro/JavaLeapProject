@@ -17,4 +17,10 @@ public class Question {
     private String optionD;
     private String correctAnswer;
     private String subject;
+
+   
+    // Link question to a specific exam
+    @ManyToOne
+    @JoinColumn(name = "exam_id")  // This creates the foreign key column in DB
+    private Exam exam;// NEW: link question to a specific exam
 }

@@ -1,6 +1,7 @@
 package com.example.OnlineExaminationSystem.controller;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.OnlineExaminationSystem.dto.ExamDTO;
 import com.example.OnlineExaminationSystem.entity.Exam;
 import com.example.OnlineExaminationSystem.service.ExamService;
 @RestController
@@ -22,9 +24,13 @@ public class ExamController {
         return examService.createExam(exam);
     }
 
-    @GetMapping("/")
-    public List<Exam> getAll() {
-        return examService.getAllExams();
-    }
+   @GetMapping("/all")
+public List<ExamDTO> getAllExams() {
+    return examService.getAllExams()
+        .stream()
+        .map(exam -> new ExamDTO(exam.getId(), exam.getTitle()))
+        .collect(Collectors.toList());
+}
+
 }
 

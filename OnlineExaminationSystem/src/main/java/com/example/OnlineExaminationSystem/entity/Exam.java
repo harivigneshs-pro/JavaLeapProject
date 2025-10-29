@@ -15,6 +15,7 @@ public class Exam {
     private int durationMinutes;
     private String createdBy;
 
-    @ManyToMany
-    private List<Question> questions;
+    @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL)
+private List<Question> questions;
+
 }
